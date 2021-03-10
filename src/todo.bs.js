@@ -2,8 +2,12 @@
 'use strict';
 
 var Fs = require("fs");
-var Os = require("os");
+var Sys = require("bs-platform/lib/js/sys.js");
 var Curry = require("bs-platform/lib/js/curry.js");
+var Js_dict = require("bs-platform/lib/js/js_dict.js");
+var Process = require("process");
+var Belt_Int = require("bs-platform/lib/js/belt_Int.js");
+var Caml_array = require("bs-platform/lib/js/caml_array.js");
 
 var getToday = (function() {
   let date = new Date();
@@ -14,18 +18,200 @@ var getToday = (function() {
 
 var encoding = "utf8";
 
-console.log("Hello! today is " + Curry._1(getToday, undefined));
+var todo_db_path = "todo.txt";
 
-if (Fs.existsSync("todo.txt")) {
-  console.log("Todo file exists.");
-} else {
-  Fs.writeFileSync("todo.txt", "This is todo!" + Os.EOL, {
+var todo_done_path = "done.txt";
+
+function show_usage_message(param) {
+  console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");
+  
+}
+
+var not_enough_arg_msgs = Js_dict.fromList({
+      hd: [
+        "add",
+        "Error: Missing todo string. Nothing added!"
+      ],
+      tl: {
+        hd: [
+          "del",
+          "Error: Missing NUMBER for deleting todo."
+        ],
+        tl: {
+          hd: [
+            "done",
+            "Error: Missing NUMBER for marking todo as done."
+          ],
+          tl: /* [] */0
+        }
+      }
+    });
+
+if (!Fs.existsSync(todo_db_path)) {
+  Fs.writeFileSync(todo_db_path, "", {
         encoding: encoding,
         flag: "w"
       });
-  console.log("Todo file created.");
+}
+
+if (!Fs.existsSync(todo_done_path)) {
+  Fs.writeFileSync(todo_done_path, "", {
+        encoding: encoding,
+        flag: "w"
+      });
+}
+
+function append_to_file(file_path, text) {
+  Fs.appendFileSync(file_path, text + "\n", {
+        encoding: encoding,
+        flag: "a"
+      });
+  
+}
+
+function read_lines_file(file_path) {
+  return Fs.readFileSync(file_path, {
+                  encoding: encoding,
+                  flag: "r"
+                }).split("\n").filter(function (todo) {
+              return todo !== "";
+            });
+}
+
+function delete_line_file(file_path, line_number) {
+  var lines = read_lines_file(file_path);
+  var line = Caml_array.get(lines, line_number - 1 | 0);
+  Fs.writeFileSync(file_path, lines.slice(0, line_number - 1 | 0).concat(lines.slice(line_number, lines.length)).join("\n"), {
+        encoding: encoding,
+        flag: "w"
+      });
+  return line;
+}
+
+function add_todo(todo) {
+  append_to_file(todo_db_path, todo);
+  console.log("Added todo: \"" + todo + "\"");
+  
+}
+
+function get_todos(param) {
+  return read_lines_file(todo_db_path);
+}
+
+function get_done(param) {
+  return read_lines_file(todo_done_path);
+}
+
+function is_valid_todo(todo_num) {
+  if (todo_num >= 1) {
+    return todo_num <= read_lines_file(todo_db_path).length;
+  } else {
+    return false;
+  }
+}
+
+function list_todos(param) {
+  var todos = read_lines_file(todo_db_path);
+  if (todos.length === 0) {
+    console.log("There are no pending todos!");
+    return ;
+  }
+  for(var i = todos.length; i >= 1; --i){
+    console.log("[" + String(i) + "] " + Caml_array.get(todos, i - 1 | 0));
+  }
+  
+}
+
+function delete_todo(todo_num) {
+  if (is_valid_todo(todo_num)) {
+    delete_line_file(todo_db_path, todo_num);
+    console.log("Deleted todo #" + String(todo_num));
+  } else {
+    console.log("Error: todo #" + String(todo_num) + " does not exist. Nothing deleted.");
+  }
+  
+}
+
+function done_todo(todo_num) {
+  if (is_valid_todo(todo_num)) {
+    var todo = delete_line_file(todo_db_path, todo_num);
+    append_to_file(todo_done_path, "x " + Curry._1(getToday, undefined) + " " + todo);
+    console.log("Marked todo #" + String(todo_num) + " as done.");
+    return ;
+  }
+  console.log("Error: todo #" + String(todo_num) + " does not exist.");
+  
+}
+
+function todo_report(param) {
+  console.log(Curry._1(getToday, undefined) + " Pending : " + String(read_lines_file(todo_db_path).length) + " Completed : " + String(read_lines_file(todo_done_path).length));
+  
+}
+
+var args = Sys.argv.slice(2, Sys.argv.length);
+
+if (args.length === 0) {
+  console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");
+} else {
+  var command = Caml_array.get(args, 0);
+  if ([
+        "add",
+        "del",
+        "done"
+      ].includes(command) && args.length !== 2) {
+    console.log(Js_dict.get(not_enough_arg_msgs, command));
+    Process.exit(0);
+  }
+  switch (command) {
+    case "add" :
+        add_todo(Caml_array.get(args, 1));
+        break;
+    case "del" :
+        var todo_num = Belt_Int.fromString(Caml_array.get(args, 1));
+        if (todo_num !== undefined) {
+          delete_todo(todo_num);
+        } else {
+          console.log("Input Error!");
+        }
+        break;
+    case "done" :
+        var todo_num$1 = Belt_Int.fromString(Caml_array.get(args, 1));
+        if (todo_num$1 !== undefined) {
+          done_todo(todo_num$1);
+        } else {
+          console.log("Input Error!");
+        }
+        break;
+    case "help" :
+        console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");
+        break;
+    case "ls" :
+        list_todos(undefined);
+        break;
+    case "report" :
+        todo_report(undefined);
+        break;
+    default:
+      console.log("Invalid Command!");
+  }
 }
 
 exports.getToday = getToday;
 exports.encoding = encoding;
-/*  Not a pure module */
+exports.todo_db_path = todo_db_path;
+exports.todo_done_path = todo_done_path;
+exports.show_usage_message = show_usage_message;
+exports.not_enough_arg_msgs = not_enough_arg_msgs;
+exports.append_to_file = append_to_file;
+exports.read_lines_file = read_lines_file;
+exports.delete_line_file = delete_line_file;
+exports.add_todo = add_todo;
+exports.get_todos = get_todos;
+exports.get_done = get_done;
+exports.is_valid_todo = is_valid_todo;
+exports.list_todos = list_todos;
+exports.delete_todo = delete_todo;
+exports.done_todo = done_todo;
+exports.todo_report = todo_report;
+exports.args = args;
+/* not_enough_arg_msgs Not a pure module */
