@@ -116,12 +116,15 @@ function is_valid_todo(todo_num) {
 
 function list_todos(param) {
   var todos = read_lines_file(todo_db_path);
+  Belt_Array.forEach(Belt_Array.reverse(Belt_Array.mapWithIndex(todos, (function (i, todo) {
+                  return "[" + String(i + 1 | 0) + "] " + todo;
+                }))), (function (prim) {
+          console.log(prim);
+          
+        }));
   if (todos.length === 0) {
     console.log("There are no pending todos!");
     return ;
-  }
-  for(var i = todos.length; i >= 1; --i){
-    console.log("[" + String(i) + "] " + Caml_array.get(todos, i - 1 | 0));
   }
   
 }

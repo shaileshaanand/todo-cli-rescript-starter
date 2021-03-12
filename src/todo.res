@@ -111,12 +111,16 @@ let is_valid_todo = todo_num => {
 
 let list_todos = () => {
   let todos = get_todos()
+
+  todos
+  ->Belt.Array.mapWithIndex((i, todo) => {
+    `[${Belt.Int.toString(i + 1)}] ${todo}`
+  })
+  ->Belt.Array.reverse
+  ->Belt.Array.forEach(Js.log)
+
   if Js.Array.length(todos) == 0 {
     Js.log("There are no pending todos!")
-  } else {
-    for i in Js.Array.length(todos) downto 1 {
-      Js.log(`[${Belt.Int.toString(i)}] ${todos[i - 1]}`)
-    }
   }
 }
 
