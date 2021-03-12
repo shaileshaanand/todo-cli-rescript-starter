@@ -148,7 +148,7 @@ function todo_report(param) {
   
 }
 
-var args = Sys.argv.slice(2, Sys.argv.length);
+var args = process.argv.slice(2, Sys.argv.length);
 
 if (args.length === 0) {
   console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");

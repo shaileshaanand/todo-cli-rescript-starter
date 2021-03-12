@@ -51,6 +51,8 @@ $ ./todo report           # Statistics`)
 @bs.module("process")
 external exit: int => unit = "exit"
 
+@val @scope("process") external argv: array<string> = "argv"
+
 let not_enough_arg_msgs = Js.Dict.fromList(list{
   ("add", "Error: Missing todo string. Nothing added!"),
   ("del", "Error: Missing NUMBER for deleting todo."),
@@ -141,7 +143,7 @@ let todo_report = () => {
   )
 }
 
-let args = Js.Array.slice(Sys.argv, ~start=2, ~end_=Js.Array.length(Sys.argv))
+let args = Js.Array.slice(argv, ~start=2, ~end_=Js.Array.length(Sys.argv))
 
 if Js.Array.length(args) == 0 {
   show_usage_message()
