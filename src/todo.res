@@ -94,8 +94,12 @@ let delete_line_file = (file_path, line_number) => {
 }
 
 let add_todo = todo => {
-  append_to_file(todo_db_path, todo)
-  Js.log(`Added todo: "${todo}"`)
+  switch todo {
+  | Some(todo) =>
+    append_to_file(todo_db_path, todo)
+    Js.log(`Added todo: "${todo}"`)
+  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("add"))
+  }
 }
 
 let get_todos = () => read_lines_file(todo_db_path)
@@ -117,21 +121,29 @@ let list_todos = () => {
 }
 
 let delete_todo = todo_num => {
-  if is_valid_todo(todo_num) {
-    let _ = delete_line_file(todo_db_path, todo_num)
-    Js.log(`Deleted todo #${Belt.Int.toString(todo_num)}`)
-  } else {
-    Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist. Nothing deleted.`)
+  switch todo_num {
+  | Some(todo_num) =>
+    if is_valid_todo(todo_num) {
+      let _ = delete_line_file(todo_db_path, todo_num)
+      Js.log(`Deleted todo #${Belt.Int.toString(todo_num)}`)
+    } else {
+      Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist. Nothing deleted.`)
+    }
+  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("del"))
   }
 }
 
 let done_todo = todo_num => {
-  if is_valid_todo(todo_num) {
-    let todo = delete_line_file(todo_db_path, todo_num)
-    append_to_file(todo_done_path, `x ${getToday()} ${todo}`)
-    Js.log(`Marked todo #${Belt.Int.toString(todo_num)} as done.`)
-  } else {
-    Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist.`)
+  switch todo_num {
+  | Some(todo_num) =>
+    if is_valid_todo(todo_num) {
+      let todo = delete_line_file(todo_db_path, todo_num)
+      append_to_file(todo_done_path, `x ${getToday()} ${todo}`)
+      Js.log(`Marked todo #${Belt.Int.toString(todo_num)} as done.`)
+    } else {
+      Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist.`)
+    }
+  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("done"))
   }
 }
 
@@ -143,31 +155,22 @@ let todo_report = () => {
   )
 }
 
-let args = Js.Array.slice(argv, ~start=2, ~end_=Js.Array.length(Sys.argv))
-
-if Js.Array.length(args) == 0 {
-  show_usage_message()
-} else {
-  let command = args[0]
-  if Js.Array.includes(command, ["add", "del", "done"]) && Js.Array.length(args) != 2 {
-    Js.log(Js.Dict.get(not_enough_arg_msgs, command))
-    exit(0)
-  }
-  switch command {
+let command = argv->Belt.Array.get(2)
+let arg = argv->Belt.Array.get(3)
+switch command {
+| Some(cmd) =>
+  switch cmd {
   | "help" => show_usage_message()
-  | "add" => add_todo(args[1])
+  | "add" => add_todo(arg)
   | "ls" => list_todos()
   | "del" =>
-    switch Belt.Int.fromString(args[1]) {
-    | None => Js.log("Input Error!")
-    | Some(todo_num) => delete_todo(todo_num)
-    }
+    let todo_num = arg->Belt.Option.flatMap(Belt.Int.fromString)
+    delete_todo(todo_num)
   | "done" =>
-    switch Belt.Int.fromString(args[1]) {
-    | None => Js.log("Input Error!")
-    | Some(todo_num) => done_todo(todo_num)
-    }
+    let todo_num = arg->Belt.Option.flatMap(Belt.Int.fromString)
+    done_todo(todo_num)
   | "report" => todo_report()
   | _ => Js.log("Invalid Command!")
   }
+| None => show_usage_message()
 }
