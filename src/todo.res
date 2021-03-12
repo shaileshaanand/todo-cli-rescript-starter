@@ -113,11 +113,11 @@ let list_todos = () => {
   let todos = get_todos()
 
   todos
-  ->Belt.Array.mapWithIndex((i, todo) => {
-    `[${Belt.Int.toString(i + 1)}] ${todo}`
+  ->Belt.Array.reduceWithIndex("", (acc, todo, i) => {
+    `[${Belt.Int.toString(i + 1)}] ${todo}\n${acc}`
   })
-  ->Belt.Array.reverse
-  ->Belt.Array.forEach(Js.log)
+  ->Js.String.trim
+  ->Js.log
 
   if Js.Array.length(todos) == 0 {
     Js.log("There are no pending todos!")
