@@ -34,11 +34,11 @@ external writeFileSync: (string, string, fsConfig) => unit = "writeFileSync"
 
 let encoding = "utf8"
 
-let todo_db_path = "todo.txt"
+let todoDbPath = "todo.txt"
 
-let todo_done_path = "done.txt"
+let todoDoneDbPath = "done.txt"
 
-let show_usage_message = () => {
+let showUsageMessage = () => {
   Js.log(`Usage :-
 $ ./todo add "todo item"  # Add a new todo
 $ ./todo ls               # Show remaining todos
@@ -53,39 +53,39 @@ external exit: int => unit = "exit"
 
 @val @scope("process") external argv: array<string> = "argv"
 
-let not_enough_arg_msgs = Js.Dict.fromList(list{
+let notEnoughArgsMsgs = Js.Dict.fromList(list{
   ("add", "Error: Missing todo string. Nothing added!"),
   ("del", "Error: Missing NUMBER for deleting todo."),
   ("done", "Error: Missing NUMBER for marking todo as done."),
 })
 
-if !existsSync(todo_db_path) {
-  writeFileSync(todo_db_path, "", {encoding: encoding, flag: "w"})
+if !existsSync(todoDbPath) {
+  writeFileSync(todoDbPath, "", {encoding: encoding, flag: "w"})
 }
 
-if !existsSync(todo_done_path) {
-  writeFileSync(todo_done_path, "", {encoding: encoding, flag: "w"})
+if !existsSync(todoDoneDbPath) {
+  writeFileSync(todoDoneDbPath, "", {encoding: encoding, flag: "w"})
 }
 
-let append_to_file = (file_path, text) =>
-  appendFileSync(file_path, text ++ "\n", {encoding: encoding, flag: "a"})
+let appendToFile = (filePath, text) =>
+  appendFileSync(filePath, text ++ "\n", {encoding: encoding, flag: "a"})
 
-let read_lines_file = file_path =>
+let readLinesFile = filePath =>
   Js.Array.filter(
     todo => todo != "",
-    Js.String.split("\n", readFileSync(file_path, {encoding: encoding, flag: "r"})),
+    Js.String.split("\n", readFileSync(filePath, {encoding: encoding, flag: "r"})),
   )
 
-let delete_line_file = (file_path, line_number) => {
-  let lines = read_lines_file(file_path)
-  let line = lines[line_number - 1]
+let deleteLineFile = (filePath, lineNumber) => {
+  let lines = readLinesFile(filePath)
+  let line = lines[lineNumber - 1]
   writeFileSync(
-    file_path,
+    filePath,
     Js.Array.joinWith(
       "\n",
       Js.Array.concat(
-        Js.Array.slice(lines, ~start=line_number, ~end_=Js.Array.length(lines)),
-        Js.Array.slice(lines, ~start=0, ~end_=line_number - 1),
+        Js.Array.slice(lines, ~start=lineNumber, ~end_=Js.Array.length(lines)),
+        Js.Array.slice(lines, ~start=0, ~end_=lineNumber - 1),
       ),
     ),
     {encoding: encoding, flag: "w"},
@@ -93,24 +93,24 @@ let delete_line_file = (file_path, line_number) => {
   line
 }
 
-let add_todo = todo => {
+let addTodo = todo => {
   switch todo {
   | Some(todo) =>
-    append_to_file(todo_db_path, todo)
+    appendToFile(todoDbPath, todo)
     Js.log(`Added todo: "${todo}"`)
-  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("add"))
+  | None => Js.log(notEnoughArgsMsgs->Js.Dict.get("add"))
   }
 }
 
-let get_todos = () => read_lines_file(todo_db_path)
-let get_done = () => read_lines_file(todo_done_path)
+let getTodos = () => readLinesFile(todoDbPath)
+let getDone = () => readLinesFile(todoDoneDbPath)
 
-let is_valid_todo = todo_num => {
-  todo_num >= 1 && todo_num <= Js.Array.length(get_todos())
+let isValidTodo = todoNum => {
+  todoNum >= 1 && todoNum <= Js.Array.length(getTodos())
 }
 
-let list_todos = () => {
-  let todos = get_todos()
+let listTodos = () => {
+  let todos = getTodos()
 
   todos
   ->Belt.Array.reduceWithIndex("", (acc, todo, i) => {
@@ -124,38 +124,38 @@ let list_todos = () => {
   }
 }
 
-let delete_todo = todo_num => {
-  switch todo_num {
-  | Some(todo_num) =>
-    if is_valid_todo(todo_num) {
-      let _ = delete_line_file(todo_db_path, todo_num)
-      Js.log(`Deleted todo #${Belt.Int.toString(todo_num)}`)
+let deleteTodo = todoNum => {
+  switch todoNum {
+  | Some(todoNum) =>
+    if isValidTodo(todoNum) {
+      let _ = deleteLineFile(todoDbPath, todoNum)
+      Js.log(`Deleted todo #${Belt.Int.toString(todoNum)}`)
     } else {
-      Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist. Nothing deleted.`)
+      Js.log(`Error: todo #${Belt.Int.toString(todoNum)} does not exist. Nothing deleted.`)
     }
-  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("del"))
+  | None => Js.log(notEnoughArgsMsgs->Js.Dict.get("del"))
   }
 }
 
-let done_todo = todo_num => {
-  switch todo_num {
-  | Some(todo_num) =>
-    if is_valid_todo(todo_num) {
-      let todo = delete_line_file(todo_db_path, todo_num)
-      append_to_file(todo_done_path, `x ${getToday()} ${todo}`)
-      Js.log(`Marked todo #${Belt.Int.toString(todo_num)} as done.`)
+let doneTodo = todoNum => {
+  switch todoNum {
+  | Some(todoNum) =>
+    if isValidTodo(todoNum) {
+      let todo = deleteLineFile(todoDbPath, todoNum)
+      appendToFile(todoDoneDbPath, `x ${getToday()} ${todo}`)
+      Js.log(`Marked todo #${Belt.Int.toString(todoNum)} as done.`)
     } else {
-      Js.log(`Error: todo #${Belt.Int.toString(todo_num)} does not exist.`)
+      Js.log(`Error: todo #${Belt.Int.toString(todoNum)} does not exist.`)
     }
-  | None => Js.log(not_enough_arg_msgs->Js.Dict.get("done"))
+  | None => Js.log(notEnoughArgsMsgs->Js.Dict.get("done"))
   }
 }
 
-let todo_report = () => {
+let todoReport = () => {
   Js.log(
     `${getToday()} Pending : ${Belt.Int.toString(
-        Js.Array.length(get_todos()),
-      )} Completed : ${Belt.Int.toString(Js.Array.length(get_done()))}`,
+        Js.Array.length(getTodos()),
+      )} Completed : ${Belt.Int.toString(Js.Array.length(getDone()))}`,
   )
 }
 
@@ -164,17 +164,17 @@ let arg = argv->Belt.Array.get(3)
 switch command {
 | Some(cmd) =>
   switch cmd {
-  | "help" => show_usage_message()
-  | "add" => add_todo(arg)
-  | "ls" => list_todos()
+  | "help" => showUsageMessage()
+  | "add" => addTodo(arg)
+  | "ls" => listTodos()
   | "del" =>
-    let todo_num = arg->Belt.Option.flatMap(Belt.Int.fromString)
-    delete_todo(todo_num)
+    let todoNum = arg->Belt.Option.flatMap(Belt.Int.fromString)
+    deleteTodo(todoNum)
   | "done" =>
-    let todo_num = arg->Belt.Option.flatMap(Belt.Int.fromString)
-    done_todo(todo_num)
-  | "report" => todo_report()
+    let todoNum = arg->Belt.Option.flatMap(Belt.Int.fromString)
+    doneTodo(todoNum)
+  | "report" => todoReport()
   | _ => Js.log("Invalid Command!")
   }
-| None => show_usage_message()
+| None => showUsageMessage()
 }

@@ -18,16 +18,16 @@ var getToday = (function() {
 
 var encoding = "utf8";
 
-var todo_db_path = "todo.txt";
+var todoDbPath = "todo.txt";
 
-var todo_done_path = "done.txt";
+var todoDoneDbPath = "done.txt";
 
-function show_usage_message(param) {
+function showUsageMessage(param) {
   console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");
   
 }
 
-var not_enough_arg_msgs = Js_dict.fromList({
+var notEnoughArgsMsgs = Js_dict.fromList({
       hd: [
         "add",
         "Error: Missing todo string. Nothing added!"
@@ -47,30 +47,30 @@ var not_enough_arg_msgs = Js_dict.fromList({
       }
     });
 
-if (!Fs.existsSync(todo_db_path)) {
-  Fs.writeFileSync(todo_db_path, "", {
+if (!Fs.existsSync(todoDbPath)) {
+  Fs.writeFileSync(todoDbPath, "", {
         encoding: encoding,
         flag: "w"
       });
 }
 
-if (!Fs.existsSync(todo_done_path)) {
-  Fs.writeFileSync(todo_done_path, "", {
+if (!Fs.existsSync(todoDoneDbPath)) {
+  Fs.writeFileSync(todoDoneDbPath, "", {
         encoding: encoding,
         flag: "w"
       });
 }
 
-function append_to_file(file_path, text) {
-  Fs.appendFileSync(file_path, text + "\n", {
+function appendToFile(filePath, text) {
+  Fs.appendFileSync(filePath, text + "\n", {
         encoding: encoding,
         flag: "a"
       });
   
 }
 
-function read_lines_file(file_path) {
-  return Fs.readFileSync(file_path, {
+function readLinesFile(filePath) {
+  return Fs.readFileSync(filePath, {
                   encoding: encoding,
                   flag: "r"
                 }).split("\n").filter(function (todo) {
@@ -78,44 +78,44 @@ function read_lines_file(file_path) {
             });
 }
 
-function delete_line_file(file_path, line_number) {
-  var lines = read_lines_file(file_path);
-  var line = Caml_array.get(lines, line_number - 1 | 0);
-  Fs.writeFileSync(file_path, lines.slice(0, line_number - 1 | 0).concat(lines.slice(line_number, lines.length)).join("\n"), {
+function deleteLineFile(filePath, lineNumber) {
+  var lines = readLinesFile(filePath);
+  var line = Caml_array.get(lines, lineNumber - 1 | 0);
+  Fs.writeFileSync(filePath, lines.slice(0, lineNumber - 1 | 0).concat(lines.slice(lineNumber, lines.length)).join("\n"), {
         encoding: encoding,
         flag: "w"
       });
   return line;
 }
 
-function add_todo(todo) {
+function addTodo(todo) {
   if (todo !== undefined) {
-    append_to_file(todo_db_path, todo);
+    appendToFile(todoDbPath, todo);
     console.log("Added todo: \"" + todo + "\"");
   } else {
-    console.log(Js_dict.get(not_enough_arg_msgs, "add"));
+    console.log(Js_dict.get(notEnoughArgsMsgs, "add"));
   }
   
 }
 
-function get_todos(param) {
-  return read_lines_file(todo_db_path);
+function getTodos(param) {
+  return readLinesFile(todoDbPath);
 }
 
-function get_done(param) {
-  return read_lines_file(todo_done_path);
+function getDone(param) {
+  return readLinesFile(todoDoneDbPath);
 }
 
-function is_valid_todo(todo_num) {
-  if (todo_num >= 1) {
-    return todo_num <= read_lines_file(todo_db_path).length;
+function isValidTodo(todoNum) {
+  if (todoNum >= 1) {
+    return todoNum <= readLinesFile(todoDbPath).length;
   } else {
     return false;
   }
 }
 
-function list_todos(param) {
-  var todos = read_lines_file(todo_db_path);
+function listTodos(param) {
+  var todos = readLinesFile(todoDbPath);
   console.log(Belt_Array.reduceWithIndex(todos, "", (function (acc, todo, i) {
                 return "[" + String(i + 1 | 0) + "] " + todo + "\n" + acc;
               })).trim());
@@ -126,37 +126,37 @@ function list_todos(param) {
   
 }
 
-function delete_todo(todo_num) {
-  if (todo_num !== undefined) {
-    if (is_valid_todo(todo_num)) {
-      delete_line_file(todo_db_path, todo_num);
-      console.log("Deleted todo #" + String(todo_num));
+function deleteTodo(todoNum) {
+  if (todoNum !== undefined) {
+    if (isValidTodo(todoNum)) {
+      deleteLineFile(todoDbPath, todoNum);
+      console.log("Deleted todo #" + String(todoNum));
     } else {
-      console.log("Error: todo #" + String(todo_num) + " does not exist. Nothing deleted.");
+      console.log("Error: todo #" + String(todoNum) + " does not exist. Nothing deleted.");
     }
   } else {
-    console.log(Js_dict.get(not_enough_arg_msgs, "del"));
+    console.log(Js_dict.get(notEnoughArgsMsgs, "del"));
   }
   
 }
 
-function done_todo(todo_num) {
-  if (todo_num !== undefined) {
-    if (is_valid_todo(todo_num)) {
-      var todo = delete_line_file(todo_db_path, todo_num);
-      append_to_file(todo_done_path, "x " + Curry._1(getToday, undefined) + " " + todo);
-      console.log("Marked todo #" + String(todo_num) + " as done.");
+function doneTodo(todoNum) {
+  if (todoNum !== undefined) {
+    if (isValidTodo(todoNum)) {
+      var todo = deleteLineFile(todoDbPath, todoNum);
+      appendToFile(todoDoneDbPath, "x " + Curry._1(getToday, undefined) + " " + todo);
+      console.log("Marked todo #" + String(todoNum) + " as done.");
       return ;
     }
-    console.log("Error: todo #" + String(todo_num) + " does not exist.");
+    console.log("Error: todo #" + String(todoNum) + " does not exist.");
     return ;
   }
-  console.log(Js_dict.get(not_enough_arg_msgs, "done"));
+  console.log(Js_dict.get(notEnoughArgsMsgs, "done"));
   
 }
 
-function todo_report(param) {
-  console.log(Curry._1(getToday, undefined) + " Pending : " + String(read_lines_file(todo_db_path).length) + " Completed : " + String(read_lines_file(todo_done_path).length));
+function todoReport(param) {
+  console.log(Curry._1(getToday, undefined) + " Pending : " + String(readLinesFile(todoDbPath).length) + " Completed : " + String(readLinesFile(todoDoneDbPath).length));
   
 }
 
@@ -167,22 +167,22 @@ var arg = Belt_Array.get(process.argv, 3);
 if (command !== undefined) {
   switch (command) {
     case "add" :
-        add_todo(arg);
+        addTodo(arg);
         break;
     case "del" :
-        delete_todo(Belt_Option.flatMap(arg, Belt_Int.fromString));
+        deleteTodo(Belt_Option.flatMap(arg, Belt_Int.fromString));
         break;
     case "done" :
-        done_todo(Belt_Option.flatMap(arg, Belt_Int.fromString));
+        doneTodo(Belt_Option.flatMap(arg, Belt_Int.fromString));
         break;
     case "help" :
         console.log("Usage :-\n$ ./todo add \"todo item\"  # Add a new todo\n$ ./todo ls               # Show remaining todos\n$ ./todo del NUMBER       # Delete a todo\n$ ./todo done NUMBER      # Complete a todo\n$ ./todo help             # Show usage\n$ ./todo report           # Statistics");
         break;
     case "ls" :
-        list_todos(undefined);
+        listTodos(undefined);
         break;
     case "report" :
-        todo_report(undefined);
+        todoReport(undefined);
         break;
     default:
       console.log("Invalid Command!");
@@ -193,21 +193,21 @@ if (command !== undefined) {
 
 exports.getToday = getToday;
 exports.encoding = encoding;
-exports.todo_db_path = todo_db_path;
-exports.todo_done_path = todo_done_path;
-exports.show_usage_message = show_usage_message;
-exports.not_enough_arg_msgs = not_enough_arg_msgs;
-exports.append_to_file = append_to_file;
-exports.read_lines_file = read_lines_file;
-exports.delete_line_file = delete_line_file;
-exports.add_todo = add_todo;
-exports.get_todos = get_todos;
-exports.get_done = get_done;
-exports.is_valid_todo = is_valid_todo;
-exports.list_todos = list_todos;
-exports.delete_todo = delete_todo;
-exports.done_todo = done_todo;
-exports.todo_report = todo_report;
+exports.todoDbPath = todoDbPath;
+exports.todoDoneDbPath = todoDoneDbPath;
+exports.showUsageMessage = showUsageMessage;
+exports.notEnoughArgsMsgs = notEnoughArgsMsgs;
+exports.appendToFile = appendToFile;
+exports.readLinesFile = readLinesFile;
+exports.deleteLineFile = deleteLineFile;
+exports.addTodo = addTodo;
+exports.getTodos = getTodos;
+exports.getDone = getDone;
+exports.isValidTodo = isValidTodo;
+exports.listTodos = listTodos;
+exports.deleteTodo = deleteTodo;
+exports.doneTodo = doneTodo;
+exports.todoReport = todoReport;
 exports.command = command;
 exports.arg = arg;
-/* not_enough_arg_msgs Not a pure module */
+/* notEnoughArgsMsgs Not a pure module */
